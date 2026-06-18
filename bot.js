@@ -15,7 +15,7 @@ const TOKEN = 'HIER_JE_BOT_TOKEN';
 
 // 👇 ZET HIER DE ROLE ID DIE KEYS MAG GEVEN
 // Hoe vind je role ID? Zie uitleg hieronder!
-const ALLOWED_ROLE_ID = '123456789012345678';
+const ALLOWED_ROLE_ID = '1509683505624252498';
 
 // 👇 Bestand waar de keys worden opgeslagen
 const DATA_FILE = path.join(__dirname, 'keys.json');
