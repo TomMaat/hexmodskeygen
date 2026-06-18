@@ -1,287 +1,323 @@
-import discord
-from discord import app_commands
-from discord.ext import commands
-import json
-import os
-import datetime
-import secrets
-import string
+// ============================================================
+// 📦 BOT CODE - HEXMODS KEY GEN
+// ============================================================
 
-# ============================================================
-# 🔧 CONFIGURATIE - VUL DIT IN!
-# ============================================================
+const { Client, GatewayIntentBits, EmbedBuilder, SlashCommandBuilder, REST, Routes } = require('discord.js');
+const fs = require('fs');
+const path = require('path');
 
-# 👇 ZET HIER JE BOT TOKEN (van Discord Developer Portal)
-TOKEN = "MTUxMjU0NTg0NTAzNDM1Mjg2MQ.Gd8BEG.Ztw4n_3KCA_2iTFwkAsQ5Bp0JZtmd455m7jd1c"
+// ============================================================
+// 🔧 CONFIGURATIE - DIT MOET JE ZELF INVULLEN!
+// ============================================================
 
-# 👇 ZET HIER DE ROLE ID DIE KEYS MAG GEVEN
-# Hoe vind je role ID? Zie uitleg hieronder!
-ALLOWED_ROLE_ID = 1509683505624252498
+// 👇 ZET HIER JE BOT TOKEN (van Discord Developer Portal)
+const TOKEN = 'HIER_JE_BOT_TOKEN';
 
-# ============================================================
-# 📁 DATA OPSLAG (JSON database - geen ingewikkelde dingen!)
-# ============================================================
+// 👇 ZET HIER DE ROLE ID DIE KEYS MAG GEVEN
+// Hoe vind je role ID? Zie uitleg hieronder!
+const ALLOWED_ROLE_ID = '123456789012345678';
 
-DATA_FILE = "/data/keys.json"
+// 👇 Bestand waar de keys worden opgeslagen
+const DATA_FILE = path.join(__dirname, 'keys.json');
 
-def load_data():
-    """Laad de database"""
-    if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, "r") as f:
-            return json.load(f)
-    return {"users": {}}
+// ============================================================
+// 📁 DATA OPSLAG (JSON database)
+// ============================================================
 
-def save_data(data):
-    """Sla de database op"""
-    with open(DATA_FILE, "w") as f:
-        json.dump(data, f, indent=4)
-
-# ============================================================
-# 🤖 BOT STARTEN
-# ============================================================
-
-intents = discord.Intents.default()
-intents.message_content = True
-intents.members = True
-
-bot = commands.Bot(command_prefix="!", intents=intents)
-
-# ============================================================
-# 📝 HELPERS
-# ============================================================
-
-def parse_length(length_str):
-    """Zet '1d' om naar seconden"""
-    if length_str.endswith("d"):
-        return int(length_str[:-1]) * 24 * 60 * 60
-    elif length_str.endswith("h"):
-        return int(length_str[:-1]) * 60 * 60
-    elif length_str.endswith("m"):
-        return int(length_str[:-1]) * 60
-    else:
-        return None
-
-def format_time(seconds):
-    """Maak tijd leesbaar"""
-    if seconds < 0:
-        return "VERLOPEN"
-    
-    days = int(seconds // (24 * 60 * 60))
-    hours = int((seconds % (24 * 60 * 60)) // (60 * 60))
-    minutes = int((seconds % (60 * 60)) // 60)
-    
-    parts = []
-    if days > 0:
-        parts.append(f"{days}d")
-    if hours > 0:
-        parts.append(f"{hours}h")
-    if minutes > 0 or not parts:
-        parts.append(f"{minutes}m")
-    
-    return " ".join(parts)
-
-def generate_key():
-    """Genereer een random key"""
-    chars = string.ascii_uppercase + string.digits
-    key = ''.join(secrets.choice(chars) for _ in range(16))
-    return f"{key[:4]}-{key[4:8]}-{key[8:12]}-{key[12:16]}"
-
-# ============================================================
-# 🎯 COMMANDS
-# ============================================================
-
-@bot.event
-async def on_ready():
-    print(f"✅ Bot is online: {bot.user}")
-    try:
-        await bot.tree.sync()
-        print("✅ Slash commands gesynchroniseerd!")
-    except Exception as e:
-        print(f"❌ Fout: {e}")
-
-# ============================================================
-# /cs2cheat - KEY GEVEN
-# ============================================================
-
-@bot.tree.command(name="cs2cheat", description="Geef een CS2 Cheat key aan een gebruiker")
-@app_commands.describe(
-    lengte="Hoe lang? (bv: 1d, 3h, 30m)",
-    gebruiker="De gebruiker die de key krijgt"
-)
-async def cs2cheat(interaction: discord.Interaction, lengte: str, gebruiker: discord.Member):
-    # 👇 CHECK OF DE GEBRUIKER DE JUISTE ROL HEEFT
-    heeft_rol = False
-    for role in interaction.user.roles:
-        if role.id == ALLOWED_ROLE_ID:
-            heeft_rol = True
-            break
-    
-    if not heeft_rol:
-        await interaction.response.send_message(
-            "❌ Je hebt niet de juiste rol!",
-            ephemeral=True
-        )
-        return
-    
-    # Parse de lengte
-    seconds = parse_length(lengte)
-    if seconds is None:
-        await interaction.response.send_message(
-            "❌ Gebruik: `1d` (dag), `3h` (uur), `30m` (minuut)",
-            ephemeral=True
-        )
-        return
-    
-    # Max 30 dagen
-    if seconds > 30 * 24 * 60 * 60:
-        await interaction.response.send_message(
-            "❌ Max 30 dagen!",
-            ephemeral=True
-        )
-        return
-    
-    # Genereer key
-    key = generate_key()
-    
-    # Sla op in database
-    data = load_data()
-    user_id = str(gebruiker.id)
-    
-    expiry = datetime.datetime.now() + datetime.timedelta(seconds=seconds)
-    expiry_str = expiry.isoformat()
-    
-    data["users"][user_id] = {
-        "key": key,
-        "expiry": expiry_str,
-        "given_by": str(interaction.user.id),
-        "given_at": datetime.datetime.now().isoformat()
+function loadData() {
+    try {
+        if (fs.existsSync(DATA_FILE)) {
+            const data = fs.readFileSync(DATA_FILE, 'utf8');
+            return JSON.parse(data);
+        }
+    } catch (error) {
+        console.log('❌ Fout bij laden database:', error);
     }
-    save_data(data)
-    
-    # Stuur bevestiging
-    embed = discord.Embed(
-        title="✅ Key Aangemaakt!",
-        color=discord.Color.green()
-    )
-    embed.add_field(name="👤 Gebruiker", value=gebruiker.mention, inline=True)
-    embed.add_field(name="🔑 Key", value=f"`{key}`", inline=True)
-    embed.add_field(name="⏰ Verloopt", value=f"<t:{int(expiry.timestamp())}:R>", inline=True)
-    embed.add_field(name="📅 Duur", value=lengte, inline=True)
-    
-    await interaction.response.send_message(embed=embed)
-    
-    # Stuur DM naar gebruiker
-    try:
-        dm = discord.Embed(
-            title="🎯 CS2 Cheat Key",
-            description="Je hebt een key ontvangen!",
-            color=discord.Color.gold()
-        )
-        dm.add_field(name="🔑 Key", value=f"`{key}`", inline=False)
-        dm.add_field(name="⏰ Verloopt", value=f"<t:{int(expiry.timestamp())}:R>", inline=False)
-        await gebruiker.send(embed=dm)
-    except:
-        pass  # DM's uit
+    return { users: {} };
+}
 
-# ============================================================
-# /status - CHECK STATUS
-# ============================================================
+function saveData(data) {
+    try {
+        fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 4));
+    } catch (error) {
+        console.log('❌ Fout bij opslaan database:', error);
+    }
+}
 
-@bot.tree.command(name="status", description="Check status van een gebruiker")
-@app_commands.describe(
-    gebruiker="De gebruiker om te checken"
-)
-async def status(interaction: discord.Interaction, gebruiker: discord.Member):
-    data = load_data()
-    user_id = str(gebruiker.id)
-    
-    if user_id not in data["users"]:
-        await interaction.response.send_message(
-            f"❌ {gebruiker.mention} heeft geen key.",
-            ephemeral=True
-        )
-        return
-    
-    user_data = data["users"][user_id]
-    expiry = datetime.datetime.fromisoformat(user_data["expiry"])
-    now = datetime.datetime.now()
-    
-    if now > expiry:
-        embed = discord.Embed(
-            title=f"⏰ Status voor {gebruiker.display_name}",
-            description="❌ **Key is VERLOPEN!**",
-            color=discord.Color.red()
-        )
-        embed.add_field(name="🔑 Key", value=f"`{user_data['key']}`", inline=False)
-    else:
-        remaining = (expiry - now).total_seconds()
-        embed = discord.Embed(
-            title=f"📊 Status voor {gebruiker.display_name}",
-            description="✅ **Key is actief!**",
-            color=discord.Color.green()
-        )
-        embed.add_field(name="🔑 Key", value=f"`{user_data['key']}`", inline=False)
-        embed.add_field(name="⏰ Resterend", value=f"**{format_time(remaining)}**", inline=False)
-        embed.add_field(name="📅 Verloopt", value=f"<t:{int(expiry.timestamp())}:F>", inline=False)
-    
-    await interaction.response.send_message(embed=embed)
+// ============================================================
+// 🤖 BOT STARTEN
+// ============================================================
 
-# ============================================================
-# /keylist - ALLE KEYS (alleen admin)
-# ============================================================
+const client = new Client({
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMembers,
+        GatewayIntentBits.MessageContent,
+        GatewayIntentBits.GuildMessages,
+    ]
+});
 
-@bot.tree.command(name="keylist", description="Bekijk alle keys (admin only)")
-async def keylist(interaction: discord.Interaction):
-    # Check admin rol
-    heeft_rol = False
-    for role in interaction.user.roles:
-        if role.id == ALLOWED_ROLE_ID:
-            heeft_rol = True
-            break
+// ============================================================
+// 📝 HELPERS
+// ============================================================
+
+function parseLength(lengthStr) {
+    if (lengthStr.endsWith('d')) {
+        return parseInt(lengthStr) * 24 * 60 * 60;
+    } else if (lengthStr.endsWith('h')) {
+        return parseInt(lengthStr) * 60 * 60;
+    } else if (lengthStr.endsWith('m')) {
+        return parseInt(lengthStr) * 60;
+    }
+    return null;
+}
+
+function formatTime(seconds) {
+    if (seconds < 0) return 'VERLOPEN';
+    const days = Math.floor(seconds / (24 * 60 * 60));
+    const hours = Math.floor((seconds % (24 * 60 * 60)) / (60 * 60));
+    const minutes = Math.floor((seconds % (60 * 60)) / 60);
+    const parts = [];
+    if (days > 0) parts.push(`${days}d`);
+    if (hours > 0) parts.push(`${hours}h`);
+    if (minutes > 0 || parts.length === 0) parts.push(`${minutes}m`);
+    return parts.join(' ');
+}
+
+function generateKey() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let key = '';
+    for (let i = 0; i < 16; i++) {
+        key += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return `${key.substring(0,4)}-${key.substring(4,8)}-${key.substring(8,12)}-${key.substring(12,16)}`;
+}
+
+// ============================================================
+// 🎯 SLASH COMMANDS REGISTREREN
+// ============================================================
+
+const commands = [
+    new SlashCommandBuilder()
+        .setName('cs2cheat')
+        .setDescription('Geef een CS2 Cheat key aan een gebruiker')
+        .addStringOption(option =>
+            option.setName('lengte')
+                .setDescription('Hoe lang? (bv: 1d, 3h, 30m)')
+                .setRequired(true))
+        .addUserOption(option =>
+            option.setName('gebruiker')
+                .setDescription('De gebruiker die de key krijgt')
+                .setRequired(true)),
+    new SlashCommandBuilder()
+        .setName('status')
+        .setDescription('Check status van een gebruiker')
+        .addUserOption(option =>
+            option.setName('gebruiker')
+                .setDescription('De gebruiker om te checken')
+                .setRequired(true)),
+    new SlashCommandBuilder()
+        .setName('keylist')
+        .setDescription('Bekijk alle keys (admin only)'),
+].map(command => command.toJSON());
+
+// ============================================================
+// 🚀 BOT START
+// ============================================================
+
+client.once('ready', async () => {
+    console.log(`✅ Bot is online: ${client.user.tag}`);
     
-    if not heeft_rol:
-        await interaction.response.send_message(
-            "❌ Alleen admins!",
-            ephemeral=True
-        )
-        return
-    
-    data = load_data()
-    now = datetime.datetime.now()
-    
-    active = []
-    expired = []
-    
-    for user_id, user_data in data["users"].items():
-        expiry = datetime.datetime.fromisoformat(user_data["expiry"])
-        try:
-            user = await bot.fetch_user(int(user_id))
-            name = user.display_name if user else f"Unknown ({user_id})"
-        except:
-            name = f"Unknown ({user_id})"
+    // Registreer slash commands
+    try {
+        const rest = new REST({ version: '10' }).setToken(TOKEN);
+        await rest.put(Routes.applicationCommands(client.user.id), { body: commands });
+        console.log('✅ Slash commands geregistreerd!');
+    } catch (error) {
+        console.error('❌ Fout bij registreren commands:', error);
+    }
+});
+
+// ============================================================
+// 📋 COMMAND HANDLER
+// ============================================================
+
+client.on('interactionCreate', async interaction => {
+    if (!interaction.isCommand()) return;
+
+    const { commandName, options } = interaction;
+
+    // ============================================================
+    // /cs2cheat - KEY GEVEN
+    // ============================================================
+    if (commandName === 'cs2cheat') {
+        // Check of gebruiker de juiste rol heeft
+        const heeftRol = interaction.member.roles.cache.has(ALLOWED_ROLE_ID);
+        if (!heeftRol) {
+            return interaction.reply({
+                content: '❌ Je hebt niet de juiste rol!',
+                ephemeral: true
+            });
+        }
+
+        const lengte = options.getString('lengte');
+        const gebruiker = options.getUser('gebruiker');
+
+        const seconds = parseLength(lengte);
+        if (!seconds) {
+            return interaction.reply({
+                content: '❌ Gebruik: `1d` (dag), `3h` (uur), `30m` (minuut)',
+                ephemeral: true
+            });
+        }
+
+        if (seconds > 30 * 24 * 60 * 60) {
+            return interaction.reply({
+                content: '❌ Max 30 dagen!',
+                ephemeral: true
+            });
+        }
+
+        // Genereer key
+        const key = generateKey();
         
-        if now > expiry:
-            expired.append(f"❌ {name} - VERLOPEN")
-        else:
-            remaining = (expiry - now).total_seconds()
-            active.append(f"✅ {name} - {format_time(remaining)} left")
-    
-    lines = []
-    if active:
-        lines.append("**🟢 Actieve keys:**")
-        lines.extend(active)
-    if expired:
-        lines.append("\n**🔴 Verlopen keys:**")
-        lines.extend(expired)
-    
-    if not lines:
-        lines.append("Geen keys gevonden.")
-    
-    await interaction.response.send_message("\n".join(lines))
+        // Sla op in database
+        const data = loadData();
+        const userId = gebruiker.id;
+        const expiry = new Date(Date.now() + seconds * 1000);
+        
+        data.users[userId] = {
+            key: key,
+            expiry: expiry.toISOString(),
+            given_by: interaction.user.id,
+            given_at: new Date().toISOString()
+        };
+        saveData(data);
 
-# ============================================================
-# 🚀 START DE BOT
-# ============================================================
+        // Stuur bericht
+        const embed = new EmbedBuilder()
+            .setTitle('✅ Key Aangemaakt!')
+            .setColor(0x00ff00)
+            .addFields(
+                { name: '👤 Gebruiker', value: `<@${gebruiker.id}>`, inline: true },
+                { name: '🔑 Key', value: `\`${key}\``, inline: true },
+                { name: '⏰ Verloopt', value: `<t:${Math.floor(expiry.getTime() / 1000)}:R>`, inline: true },
+                { name: '📅 Duur', value: lengte, inline: true }
+            );
 
-if __name__ == "__main__":
-    bot.run(TOKEN)
+        await interaction.reply({ embeds: [embed] });
+
+        // Stuur DM naar gebruiker
+        try {
+            const dmEmbed = new EmbedBuilder()
+                .setTitle('🎯 CS2 Cheat Key')
+                .setDescription('Je hebt een CS2 Cheat key ontvangen!')
+                .setColor(0xffd700)
+                .addFields(
+                    { name: '🔑 Key', value: `\`${key}\`` },
+                    { name: '⏰ Verloopt', value: `<t:${Math.floor(expiry.getTime() / 1000)}:R>` }
+                );
+            await gebruiker.send({ embeds: [dmEmbed] });
+        } catch (error) {
+            console.log('⚠️ Kon geen DM sturen naar gebruiker');
+        }
+    }
+
+    // ============================================================
+    // /status - CHECK STATUS
+    // ============================================================
+    else if (commandName === 'status') {
+        const gebruiker = options.getUser('gebruiker');
+        const data = loadData();
+        const userData = data.users[gebruiker.id];
+
+        if (!userData) {
+            return interaction.reply({
+                content: `❌ <@${gebruiker.id}> heeft geen key.`,
+                ephemeral: true
+            });
+        }
+
+        const expiry = new Date(userData.expiry);
+        const now = new Date();
+        const isExpired = now > expiry;
+
+        const embed = new EmbedBuilder()
+            .setTitle(`📊 Status voor ${gebruiker.username}`)
+            .setColor(isExpired ? 0xff0000 : 0x00ff00)
+            .addFields(
+                { name: '🔑 Key', value: `\`${userData.key}\`` },
+                { name: '📅 Status', value: isExpired ? '❌ **VERLOPEN!**' : '✅ **Actief!**' }
+            );
+
+        if (!isExpired) {
+            const remaining = Math.floor((expiry - now) / 1000);
+            embed.addFields(
+                { name: '⏰ Resterend', value: `**${formatTime(remaining)}**` },
+                { name: '📅 Verloopt', value: `<t:${Math.floor(expiry.getTime() / 1000)}:F>` }
+            );
+        }
+
+        await interaction.reply({ embeds: [embed] });
+    }
+
+    // ============================================================
+    // /keylist - ALLE KEYS
+    // ============================================================
+    else if (commandName === 'keylist') {
+        const heeftRol = interaction.member.roles.cache.has(ALLOWED_ROLE_ID);
+        if (!heeftRol) {
+            return interaction.reply({
+                content: '❌ Alleen admins!',
+                ephemeral: true
+            });
+        }
+
+        const data = loadData();
+        const now = new Date();
+        let active = [];
+        let expired = [];
+
+        for (const [userId, userData] of Object.entries(data.users)) {
+            const expiry = new Date(userData.expiry);
+            try {
+                const user = await client.users.fetch(userId);
+                const name = user ? user.username : `Unknown (${userId})`;
+                if (now > expiry) {
+                    expired.push(`❌ ${name} - VERLOPEN`);
+                } else {
+                    const remaining = Math.floor((expiry - now) / 1000);
+                    active.push(`✅ ${name} - ${formatTime(remaining)} left`);
+                }
+            } catch (error) {
+                console.log(`⚠️ Kon gebruiker ${userId} niet ophalen`);
+            }
+        }
+
+        let reply = '';
+        if (active.length) {
+            reply += '**🟢 Actieve keys:**\n' + active.join('\n');
+        }
+        if (expired.length) {
+            if (reply) reply += '\n\n';
+            reply += '**🔴 Verlopen keys:**\n' + expired.join('\n');
+        }
+        if (!reply) {
+            reply = 'Geen keys gevonden.';
+        }
+
+        if (reply.length > 2000) {
+            // Stuur als bestand als het te lang is
+            const buffer = Buffer.from(reply, 'utf-8');
+            await interaction.reply({ files: [{ attachment: buffer, name: 'keylist.txt' }] });
+        } else {
+            await interaction.reply({ content: reply });
+        }
+    }
+});
+
+// ============================================================
+// 🚀 START DE BOT
+// ============================================================
+
+client.login(TOKEN);
