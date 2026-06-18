@@ -22,7 +22,7 @@ ALLOWED_ROLE_ID = 1509683505624252498
 # 📁 DATA OPSLAG (JSON database - geen ingewikkelde dingen!)
 # ============================================================
 
-DATA_FILE = "keys.json"
+DATA_FILE = "/data/keys.json"
 
 def load_data():
     """Laad de database"""
